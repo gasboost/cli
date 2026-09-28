@@ -23,6 +23,9 @@ jobs:
       publish-console: ${{ steps.versions.outputs.publish-console }}
       publish-cli: ${{ steps.versions.outputs.publish-cli }}
       publish-create: ${{ steps.versions.outputs.publish-create }}
+      publish-fake-core: ${{ steps.versions.outputs.publish-fake-core }}
+      publish-fake-node: ${{ steps.versions.outputs.publish-fake-node }}
+      publish-vite: ${{ steps.versions.outputs.publish-vite }}
 
     steps:
       - name: Checkout
@@ -62,12 +65,24 @@ jobs:
           check_package publish-console packages/console/package.json
           check_package publish-cli packages/cli/package.json
           check_package publish-create packages/create-gasboost/package.json
+          check_package publish-fake-core packages/fake-core/package.json
+          check_package publish-fake-node packages/fake-node/package.json
+          check_package publish-vite packages/vite/package.json
 
   publish:
     needs: check-versions
-    if: ${{ needs.check-versions.outputs.publish-config == 'true' || needs.check-versions.outputs.publish-console-runtime == 'true' || needs.check-versions.outputs.publish-console == 'true' || needs.check-versions.outputs.publish-cli == 'true' || needs.check-versions.outputs.publish-create == 'true' }}
+    if: >-
+      ${{
+        needs.check-versions.outputs.publish-config == 'true' ||
+        needs.check-versions.outputs.publish-console-runtime == 'true' ||
+        needs.check-versions.outputs.publish-console == 'true' ||
+        needs.check-versions.outputs.publish-cli == 'true' ||
+        needs.check-versions.outputs.publish-create == 'true' ||
+        needs.check-versions.outputs.publish-fake-core == 'true' ||
+        needs.check-versions.outputs.publish-fake-node == 'true' ||
+        needs.check-versions.outputs.publish-vite == 'true'
+      }}
     runs-on: ubuntu-latest
-
     permissions:
       contents: read
       id-token: write
@@ -91,12 +106,84 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # If a Publish <package> step returns npm 404, bootstrap that scoped package
-      # once in npm and configure Trusted Publishing for this workflow.
-      # Later version bumps should publish via OIDC.
+      # fake-core is consumed by fake-node and vite.
+      - name: Build fake-core
+        if: >-
+          ${{
+            needs.check-versions.outputs.publish-fake-core == 'true' ||
+            needs.check-versions.outputs.publish-fake-node == 'true' ||
+            needs.check-versions.outputs.publish-vite == 'true'
+          }}
+        run: pnpm --filter @gasboost/fake-core build
+
+      - name: Typecheck fake-core
+        if: ${{ needs.check-versions.outputs.publish-fake-core == 'true' }}
+        run: pnpm --filter @gasboost/fake-core typecheck
+
+      - name: Test fake-core
+        if: ${{ needs.check-versions.outputs.publish-fake-core == 'true' }}
+        run: pnpm --filter @gasboost/fake-core test
+
+      - name: Verify fake-core package contents
+        if: ${{ needs.check-versions.outputs.publish-fake-core == 'true' }}
+        working-directory: packages/fake-core
+        run: pnpm pack
+
+      - name: Publish fake-core
+        if: ${{ needs.check-versions.outputs.publish-fake-core == 'true' }}
+        working-directory: packages/fake-core
+        run: pnpm publish --access public --no-git-checks
+
+      # fake-node is consumed by vite.
+      - name: Build fake-node
+        if: >-
+          ${{
+            needs.check-versions.outputs.publish-fake-node == 'true' ||
+            needs.check-versions.outputs.publish-vite == 'true'
+          }}
+        run: pnpm --filter @gasboost/fake-node build
+
+      - name: Typecheck fake-node
+        if: ${{ needs.check-versions.outputs.publish-fake-node == 'true' }}
+        run: pnpm --filter @gasboost/fake-node typecheck
+
+      - name: Test fake-node
+        if: ${{ needs.check-versions.outputs.publish-fake-node == 'true' }}
+        run: pnpm --filter @gasboost/fake-node test
+
+      - name: Verify fake-node package contents
+        if: ${{ needs.check-versions.outputs.publish-fake-node == 'true' }}
+        working-directory: packages/fake-node
+        run: pnpm pack
+
+      - name: Publish fake-node
+        if: ${{ needs.check-versions.outputs.publish-fake-node == 'true' }}
+        working-directory: packages/fake-node
+        run: pnpm publish --access public --no-git-checks
+
+      - name: Typecheck vite
+        if: ${{ needs.check-versions.outputs.publish-vite == 'true' }}
+        run: pnpm --filter @gasboost/vite typecheck
+
+      - name: Test vite
+        if: ${{ needs.check-versions.outputs.publish-vite == 'true' }}
+        run: pnpm --filter @gasboost/vite test
+
+      - name: Build vite
+        if: ${{ needs.check-versions.outputs.publish-vite == 'true' }}
+        run: pnpm --filter @gasboost/vite build
+
+      - name: Verify vite package contents
+        if: ${{ needs.check-versions.outputs.publish-vite == 'true' }}
+        working-directory: packages/vite
+        run: pnpm pack
+
+      - name: Publish vite
+        if: ${{ needs.check-versions.outputs.publish-vite == 'true' }}
+        working-directory: packages/vite
+        run: pnpm publish --access public --no-git-checks
 
       # @gasboost/config is consumed by @gasboost/console and @gasboost/cli.
-      # Build it before downstream packages, and publish it first when its version changed.
       - name: Typecheck config
         if: ${{ needs.check-versions.outputs.publish-config == 'true' }}
         run: pnpm --filter @gasboost/config typecheck

@@ -1,0 +1,55 @@
+{
+  "name": "@gasboost/vite",
+  "version": "1.2.3",
+  "description": "A Vite plugin for building @gasboost/app applications for Google Apps Script.",
+  "keywords": [
+    "google-apps-script",
+    "gas",
+    "vite",
+    "typescript",
+    "plugin",
+    "build",
+    "bundler",
+    "serverless",
+    "gasboost"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gasboost/dev.git",
+    "directory": "packages/vite"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "type": "module",
+  "devDependencies": {
+    "@types/google-apps-script": "^2.0.12",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "build": "rm -rf dist && vite build --config vite.package.config.ts && tsc -p tsconfig.build.json",
+    "pack:check": "pnpm pack"
+  },
+  "dependencies": {
+    "@gasboost/app": "5.1.0",
+    "@gasboost/fake-core": "workspace:^",
+    "@gasboost/fake-node": "workspace:^",
+    "typescript": "^7.0.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

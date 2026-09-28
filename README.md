@@ -12,7 +12,10 @@ packages/
 ├─ config            @gasboost/config
 ├─ cli               @gasboost/cli
 ├─ console           @gasboost/console
-└─ console-runtime   @gasboost/console-runtime
+├─ console-runtime   @gasboost/console-runtime
+├─ vite              @gasboost/vite
+├─ fake-core         @gasboost/fake-core
+└─ fake-node         @gasboost/fake-node
 ```
 
 ## Quick Start

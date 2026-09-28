@@ -29,6 +29,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # fake-node depends on the built fake-core package during validation.
+      - name: Check fake-core
+        run: pnpm --filter @gasboost/fake-core check
+
+      - name: Build fake-core for fake-node validation
+        run: pnpm --filter @gasboost/fake-core build
+
+      - name: Check fake-node
+        run: pnpm --filter @gasboost/fake-node check
+
       - name: Build packages
         run: pnpm -r build
 
@@ -49,6 +59,124 @@ jobs:
 
       - name: Pack packages
         run: pnpm -r pack:check
+
+      - name: Verify fake package runtime
+        run: |
+          node -e "require('./packages/fake-core/dist/index.js')"
+          node -e "require('./packages/fake-node/dist/index.js')"
+
+      - name: Verify packed fake-node dependency
+        run: |
+          FAKE_NODE_PACKAGE="$(find "$(pwd)/packages/fake-node" -maxdepth 1 -name 'gasboost-fake-node-*.tgz' -print -quit)"
+
+          tar -xOf "$FAKE_NODE_PACKAGE" package/package.json > /tmp/fake-node-package.json
+
+          node -e "
+          const packed = require('/tmp/fake-node-package.json');
+          const core = require('./packages/fake-core/package.json');
+
+          if (packed.dependencies['@gasboost/fake-core'] !== core.version) {
+            console.error(
+              'Expected @gasboost/fake-core@' + core.version +
+              ', got ' + packed.dependencies['@gasboost/fake-core']
+            );
+            process.exit(1);
+          }
+          "
+
+      - name: Smoke test packed vite package
+        run: |
+          VITE_PACKAGE="$(find "$(pwd)/packages/vite" -maxdepth 1 -name 'gasboost-vite-*.tgz' -print -quit)"
+          FAKE_CORE_PACKAGE="$(find "$(pwd)/packages/fake-core" -maxdepth 1 -name 'gasboost-fake-core-*.tgz' -print -quit)"
+          FAKE_NODE_PACKAGE="$(find "$(pwd)/packages/fake-node" -maxdepth 1 -name 'gasboost-fake-node-*.tgz' -print -quit)"
+          APP_VERSION="$(node -p "require('./packages/vite/package.json').dependencies['@gasboost/app']")"
+
+          rm -rf /tmp/gasboost-vite-consumer
+          mkdir -p /tmp/gasboost-vite-consumer/src
+          cd /tmp/gasboost-vite-consumer
+
+          cat > package.json <<EOF
+          {
+            "name": "gasboost-vite-consumer",
+            "private": true,
+            "type": "module",
+            "scripts": {
+              "build": "vite build"
+            },
+            "dependencies": {
+              "@gasboost/app": "$APP_VERSION"
+            },
+            "devDependencies": {
+              "@gasboost/vite": "file:$VITE_PACKAGE",
+              "vite": "^8.2.2",
+              "typescript": "^7.0.2",
+              "@types/google-apps-script": "^2.0.12"
+            },
+            "pnpm": {
+              "overrides": {
+                "@gasboost/fake-core": "file:$FAKE_CORE_PACKAGE",
+                "@gasboost/fake-node": "file:$FAKE_NODE_PACKAGE"
+              }
+            }
+          }
+          EOF
+
+          pnpm install
+
+          cat > src/main.ts <<'EOF'
+          import { AppsScript } from "@gasboost/app";
+
+          const app = new AppsScript()
+            .get(() => {
+              return {
+                marker: "GET_RESULT",
+              } as never;
+            })
+            .call(
+              "sum",
+              (input: { a: number; b: number }) =>
+                input.a + input.b,
+            );
+
+          export default app;
+          EOF
+
+          cat > vite.config.ts <<'EOF'
+          import { defineConfig } from "vite";
+          import { gasboost } from "@gasboost/vite";
+
+          const { build } = gasboost({
+            entry: "src/main.ts",
+          });
+
+          export default defineConfig({
+            plugins: [build],
+          });
+          EOF
+
+          cat > tsconfig.json <<'EOF'
+          {
+            "compilerOptions": {
+              "target": "ES2022",
+              "module": "NodeNext",
+              "moduleResolution": "NodeNext",
+              "strict": true,
+              "types": ["google-apps-script"],
+              "skipLibCheck": true
+            },
+            "include": [
+              "src",
+              "vite.config.ts"
+            ]
+          }
+          EOF
+
+          pnpm exec tsc --noEmit
+          pnpm build
+
+          test -f dist/main.js
+          grep -q "function doGet" dist/main.js
+          grep -q "function sum" dist/main.js
 
       - name: Smoke test packed packages
         run: pnpm smoke:packed

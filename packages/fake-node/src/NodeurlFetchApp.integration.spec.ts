@@ -70,7 +70,7 @@ afterAll(async () => {
     const startedAt = Date.now();
 
     while (server.exitCode === null) {
-      if (Date.now() - startedAt > 5_000) {
+      if (Date.now() - startedAt > 1_000) {
         server.kill("SIGKILL");
         break;
       }

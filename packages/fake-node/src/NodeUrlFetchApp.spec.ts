@@ -28,6 +28,7 @@ describe("fetch", () => {
     expect(request).toHaveBeenCalledWith("GET", "https://example.com", {
       headers: {},
       body: undefined,
+      followRedirects: true,
     });
 
     expect(response.getResponseCode()).toBe(200);
@@ -61,6 +62,7 @@ describe("fetch", () => {
         "Content-Type": "application/json",
       },
       body: '{"name":"test"}',
+      followRedirects: true,
     });
 
     expect(response.getResponseCode()).toBe(201);
@@ -85,6 +87,7 @@ describe("fetch", () => {
     expect(request).toHaveBeenCalledWith("POST", "https://example.com/upload", {
       headers: {},
       body: Buffer.from(blob.getBytes().map((byte: number) => byte & 0xff)),
+      followRedirects: true,
     });
   });
 
@@ -105,6 +108,143 @@ describe("fetch", () => {
     expect(response.getAllHeaders()).toEqual({
       "content-type": "text/plain",
     });
+  });
+
+  it("contentTypeをContent-Typeヘッダーとして送信する", () => {
+    vi.mocked(request).mockReturnValue({
+      statusCode: 200,
+      headers: {},
+      body: Buffer.from("ok"),
+    } as ReturnType<typeof request>);
+
+    const urlFetchApp = new NodeUrlFetchApp();
+
+    urlFetchApp.fetch("https://example.com", {
+      method: "post",
+      contentType: "application/json",
+      payload: '{"message":"hello"}',
+    });
+
+    expect(request).toHaveBeenCalledWith("POST", "https://example.com", {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: '{"message":"hello"}',
+      followRedirects: true,
+    });
+  });
+
+  it("Content-Typeヘッダーが明示されている場合はcontentTypeで上書きしない", () => {
+    vi.mocked(request).mockReturnValue({
+      statusCode: 200,
+      headers: {},
+      body: Buffer.from("ok"),
+    } as ReturnType<typeof request>);
+
+    const urlFetchApp = new NodeUrlFetchApp();
+
+    urlFetchApp.fetch("https://example.com", {
+      method: "post",
+      contentType: "application/json",
+      headers: {
+        "content-type": "application/custom",
+      },
+      payload: "data",
+    });
+
+    expect(request).toHaveBeenCalledWith("POST", "https://example.com", {
+      headers: {
+        "content-type": "application/custom",
+      },
+      body: "data",
+      followRedirects: true,
+    });
+  });
+
+  it("followRedirectsをsync-requestに渡す", () => {
+    vi.mocked(request).mockReturnValue({
+      statusCode: 302,
+      headers: {
+        location: "/redirected",
+      },
+      body: Buffer.from(""),
+    } as ReturnType<typeof request>);
+
+    const urlFetchApp = new NodeUrlFetchApp();
+
+    urlFetchApp.fetch("https://example.com", {
+      followRedirects: false,
+      muteHttpExceptions: true,
+    });
+
+    expect(request).toHaveBeenCalledWith("GET", "https://example.com", {
+      headers: {},
+      body: undefined,
+      followRedirects: false,
+    });
+  });
+
+  it("followRedirectsを省略するとtrueを渡す", () => {
+    vi.mocked(request).mockReturnValue({
+      statusCode: 200,
+      headers: {},
+      body: Buffer.from("ok"),
+    } as ReturnType<typeof request>);
+
+    const urlFetchApp = new NodeUrlFetchApp();
+
+    urlFetchApp.fetch("https://example.com");
+
+    expect(request).toHaveBeenCalledWith("GET", "https://example.com", {
+      headers: {},
+      body: undefined,
+      followRedirects: true,
+    });
+  });
+
+  it("400以上のレスポンスはデフォルトで例外になる", () => {
+    vi.mocked(request).mockReturnValue({
+      statusCode: 404,
+      headers: {},
+      body: Buffer.from("not found"),
+    } as ReturnType<typeof request>);
+
+    const urlFetchApp = new NodeUrlFetchApp();
+
+    expect(() => urlFetchApp.fetch("https://example.com/missing")).toThrow(
+      "Request failed for https://example.com/missing returned code 404.",
+    );
+  });
+
+  it("muteHttpExceptionsがtrueなら400以上でもHTTPResponseを返す", () => {
+    vi.mocked(request).mockReturnValue({
+      statusCode: 404,
+      headers: {},
+      body: Buffer.from("not found"),
+    } as ReturnType<typeof request>);
+
+    const urlFetchApp = new NodeUrlFetchApp();
+
+    const response = urlFetchApp.fetch("https://example.com/missing", {
+      muteHttpExceptions: true,
+    });
+
+    expect(response.getResponseCode()).toBe(404);
+    expect(response.getContentText()).toBe("not found");
+  });
+
+  it("500以上のレスポンスもデフォルトで例外になる", () => {
+    vi.mocked(request).mockReturnValue({
+      statusCode: 500,
+      headers: {},
+      body: Buffer.from("internal server error"),
+    } as ReturnType<typeof request>);
+
+    const urlFetchApp = new NodeUrlFetchApp();
+
+    expect(() => urlFetchApp.fetch("https://example.com/error")).toThrow(
+      "Request failed for https://example.com/error returned code 500.",
+    );
   });
 });
 
@@ -152,6 +292,7 @@ describe("fetchAll", () => {
       {
         headers: {},
         body: undefined,
+        followRedirects: true,
       },
     );
 
@@ -162,6 +303,7 @@ describe("fetchAll", () => {
       {
         headers: {},
         body: "data",
+        followRedirects: true,
       },
     );
   });

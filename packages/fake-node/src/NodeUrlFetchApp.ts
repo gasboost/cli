@@ -17,6 +17,15 @@ export class NodeUrlFetchApp implements GoogleAppsScript.URL_Fetch.UrlFetchApp {
       ...(params.headers ?? {}),
     };
 
+    if (
+      params.contentType !== undefined &&
+      !Object.keys(headers).some(
+        (name) => name.toLowerCase() === "content-type",
+      )
+    ) {
+      headers["Content-Type"] = params.contentType;
+    }
+
     let body: string | Buffer | undefined;
 
     if (typeof params.payload === "string") {
@@ -36,6 +45,7 @@ export class NodeUrlFetchApp implements GoogleAppsScript.URL_Fetch.UrlFetchApp {
     const response = request(method, url, {
       headers,
       body,
+      followRedirects: params.followRedirects ?? true,
     });
 
     const responseHeaders: Record<string, string | string[]> = {};
@@ -46,11 +56,19 @@ export class NodeUrlFetchApp implements GoogleAppsScript.URL_Fetch.UrlFetchApp {
       }
     }
 
-    return new InMemoryHttpResponse(
+    const httpResponse = new InMemoryHttpResponse(
       response.body,
       response.statusCode,
       responseHeaders,
     );
+
+    if (response.statusCode >= 400 && params.muteHttpExceptions !== true) {
+      throw new Error(
+        `Request failed for ${url} returned code ${response.statusCode}.`,
+      );
+    }
+
+    return httpResponse;
   }
 
   fetchAll(

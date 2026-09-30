@@ -1,6 +1,6 @@
 {
   "name": "@gasboost/fake-node",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "This package provides a fake implementation of Google Apps Script built-in services for testing purposes.",
   "license": "MIT",
   "author": "tiger-oshima",
@@ -21,9 +21,10 @@
     "pack:check": "pnpm pack"
   },
   "dependencies": {
+    "@gasboost/fake-core": "workspace:*",
     "date-fns-tz": "^3.2.0",
     "fflate": "^0.8.3",
-    "@gasboost/fake-core": "workspace:*"
+    "sync-request": "^6.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

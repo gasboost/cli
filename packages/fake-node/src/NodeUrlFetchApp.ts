@@ -1,17 +1,20 @@
 import { InMemoryHttpResponse } from "@gasboost/fake-core";
-import request, { type HttpVerb } from "sync-request";
+import { Buffer } from "node:buffer";
+import { syncHttpRequest } from "./http/SyncHttpRequest";
 
 export class NodeUrlFetchApp implements GoogleAppsScript.URL_Fetch.UrlFetchApp {
   fetch(url: string): GoogleAppsScript.URL_Fetch.HTTPResponse;
+
   fetch(
     url: string,
     params: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions,
   ): GoogleAppsScript.URL_Fetch.HTTPResponse;
+
   fetch(
     url: string,
     params: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {},
   ): GoogleAppsScript.URL_Fetch.HTTPResponse {
-    const method = (params.method ?? "get").toUpperCase() as HttpVerb;
+    const method = (params.method ?? "get").toUpperCase();
 
     const headers: Record<string, string> = {
       ...(params.headers ?? {}),
@@ -26,7 +29,7 @@ export class NodeUrlFetchApp implements GoogleAppsScript.URL_Fetch.UrlFetchApp {
       headers["Content-Type"] = params.contentType;
     }
 
-    let body: string | Buffer | undefined;
+    let body: string | Uint8Array | undefined;
 
     if (typeof params.payload === "string") {
       body = params.payload;
@@ -42,24 +45,18 @@ export class NodeUrlFetchApp implements GoogleAppsScript.URL_Fetch.UrlFetchApp {
       body = Buffer.from(blob.getBytes().map((byte: number) => byte & 0xff));
     }
 
-    const response = request(method, url, {
+    const response = syncHttpRequest({
+      url,
+      method,
       headers,
       body,
       followRedirects: params.followRedirects ?? true,
     });
 
-    const responseHeaders: Record<string, string | string[]> = {};
-
-    for (const [name, value] of Object.entries(response.headers)) {
-      if (value !== undefined) {
-        responseHeaders[name] = value;
-      }
-    }
-
     const httpResponse = new InMemoryHttpResponse(
       response.body,
       response.statusCode,
-      responseHeaders,
+      response.headers,
     );
 
     if (response.statusCode >= 400 && params.muteHttpExceptions !== true) {
@@ -86,10 +83,12 @@ export class NodeUrlFetchApp implements GoogleAppsScript.URL_Fetch.UrlFetchApp {
   }
 
   getRequest(url: string): GoogleAppsScript.URL_Fetch.URLFetchRequest;
+
   getRequest(
     url: string,
     params: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions,
   ): GoogleAppsScript.URL_Fetch.URLFetchRequest;
+
   getRequest(
     url: string,
     params: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {},

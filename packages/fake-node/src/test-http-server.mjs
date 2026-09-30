@@ -1,13 +1,6 @@
 import { Buffer } from "node:buffer";
-import fs from "node:fs";
 import http from "node:http";
 import process from "node:process";
-
-const portFile = process.argv[2];
-
-if (!portFile) {
-  throw new Error("Port file path is required.");
-}
 
 const server = http.createServer((request, response) => {
   if (request.url === "/get" && request.method === "GET") {
@@ -64,6 +57,7 @@ const server = http.createServer((request, response) => {
     });
 
     response.end("internal server error");
+
     return;
   }
 
@@ -96,11 +90,7 @@ server.listen(0, "127.0.0.1", () => {
     process.exit(1);
   }
 
-  const temporaryPortFile = `${portFile}.tmp`;
-
-  fs.writeFileSync(temporaryPortFile, String(address.port), "utf8");
-
-  fs.renameSync(temporaryPortFile, portFile);
+  process.stdout.write(`${address.port}\n`);
 });
 
 process.on("SIGTERM", () => {

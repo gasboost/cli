@@ -1,97 +1,103 @@
 import { spawn } from "node:child_process";
-import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { NodeUrlFetchApp } from "./NodeUrlFetchApp";
 
 let server: ReturnType<typeof spawn> | undefined;
 let baseUrl: string;
-let portFile: string;
 
 beforeAll(async () => {
-  portFile = path.join(
-    os.tmpdir(),
-    `gasboost-url-fetch-${process.pid}-${Date.now()}.port`,
-  );
-
   server = spawn(
     process.execPath,
-    [path.join(__dirname, "test-http-server.mjs"), portFile],
+    [path.join(__dirname, "test-http-server.mjs")],
     {
-      stdio: ["ignore", "ignore", "inherit"],
+      stdio: ["ignore", "pipe", "inherit"],
     },
   );
 
   const port = await new Promise<number>((resolve, reject) => {
-    const startedAt = Date.now();
+    const stdout = server?.stdout;
 
-    const check = () => {
-      if (fs.existsSync(portFile)) {
-        const value = fs.readFileSync(portFile, "utf8").trim();
+    if (!server || !stdout) {
+      reject(new Error("Failed to start test HTTP server."));
+      return;
+    }
 
-        const parsed = Number(value);
+    stdout.setEncoding("utf8");
 
-        if (Number.isInteger(parsed) && parsed > 0) {
-          resolve(parsed);
-          return;
-        }
-      }
+    const onData = (data: string | Buffer) => {
+      const value = data.toString().trim();
 
-      if (server?.exitCode !== null) {
-        reject(
-          new Error(
-            `Test HTTP server exited before startup with code ${String(
-              server?.exitCode,
-            )}.`,
-          ),
-        );
+      const parsed = Number(value);
+
+      cleanup();
+
+      if (Number.isInteger(parsed) && parsed > 0) {
+        resolve(parsed);
         return;
       }
 
-      if (Date.now() - startedAt > 5_000) {
-        reject(new Error("Timed out waiting for test HTTP server to start."));
-        return;
-      }
-
-      setTimeout(check, 10);
+      reject(new Error(`Test HTTP server returned an invalid port: ${value}`));
     };
 
-    check();
+    const onError = (error: Error) => {
+      cleanup();
+      reject(error);
+    };
+
+    const onExit = (code: number | null) => {
+      cleanup();
+
+      reject(
+        new Error(
+          `Test HTTP server exited before startup with code ${String(code)}.`,
+        ),
+      );
+    };
+
+    const cleanup = () => {
+      stdout.off("data", onData);
+
+      server?.off("error", onError);
+
+      server?.off("exit", onExit);
+    };
+
+    stdout.once("data", onData);
+
+    server.once("error", onError);
+
+    server.once("exit", onExit);
   });
 
   baseUrl = `http://127.0.0.1:${port}`;
 });
 
 afterAll(async () => {
-  if (server && server.exitCode === null) {
-    server.kill("SIGTERM");
-
-    const startedAt = Date.now();
-
-    while (server.exitCode === null) {
-      if (Date.now() - startedAt > 1_000) {
-        server.kill("SIGKILL");
-        break;
-      }
-
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 10);
-      });
-    }
+  if (!server || server.exitCode !== null) {
+    return;
   }
 
-  server?.unref();
+  await new Promise<void>((resolve) => {
+    const timeout = setTimeout(() => {
+      server?.kill("SIGKILL");
+    }, 1_000);
 
-  if (portFile && fs.existsSync(portFile)) {
-    fs.unlinkSync(portFile);
-  }
+    timeout.unref();
 
-  const temporaryPortFile = `${portFile}.tmp`;
+    server?.once("exit", () => {
+      clearTimeout(timeout);
+      resolve();
+    });
 
-  if (portFile && fs.existsSync(temporaryPortFile)) {
-    fs.unlinkSync(temporaryPortFile);
-  }
+    server?.kill("SIGTERM");
+  });
+
+  server.stdout?.destroy();
+  server.stderr?.destroy();
+  server.stdin?.destroy();
+
+  server.unref();
 });
 
 describe("NodeUrlFetchApp integration", () => {
@@ -147,6 +153,7 @@ describe("NodeUrlFetchApp integration", () => {
     });
 
     expect(response.getResponseCode()).toBe(404);
+
     expect(response.getContentText()).toBe("not found");
   });
 
@@ -156,6 +163,7 @@ describe("NodeUrlFetchApp integration", () => {
     const response = urlFetchApp.fetch(`${baseUrl}/redirect`);
 
     expect(response.getResponseCode()).toBe(200);
+
     expect(response.getContentText()).toBe("redirected");
   });
 

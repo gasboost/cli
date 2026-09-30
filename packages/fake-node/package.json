@@ -13,18 +13,19 @@
   "scripts": {
     "format": "prettier --ignore-path .prettierignore --write .",
     "formatcheck": "prettier --ignore-path .prettierignore --check .",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "pnpm typecheck:build && pnpm typecheck:test",
+    "typecheck:build": "tsc -p tsconfig.build.json --noEmit",
+    "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
     "lint": "eslint . --ext .ts",
-    "test": "vitest run",
+    "test": "pnpm build && vitest run",
     "check": "pnpm formatcheck && pnpm lint && pnpm typecheck && pnpm test",
-    "build": "rm -rf dist && tsc -p tsconfig.json",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
     "pack:check": "pnpm pack"
   },
   "dependencies": {
     "@gasboost/fake-core": "workspace:*",
     "date-fns-tz": "^3.2.0",
-    "fflate": "^0.8.3",
-    "sync-request": "^6.1.0"
+    "fflate": "^0.8.3"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

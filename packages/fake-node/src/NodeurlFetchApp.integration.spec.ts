@@ -17,7 +17,7 @@ beforeAll(async () => {
 
   server = spawn(
     process.execPath,
-    [path.join(__dirname, "test-http-server.cjs"), portFile],
+    [path.join(__dirname, "test-http-server.mjs"), portFile],
     {
       stdio: ["ignore", "ignore", "inherit"],
     },
@@ -29,15 +29,22 @@ beforeAll(async () => {
     const check = () => {
       if (fs.existsSync(portFile)) {
         const value = fs.readFileSync(portFile, "utf8").trim();
+
         const parsed = Number(value);
 
         if (Number.isInteger(parsed) && parsed > 0) {
           resolve(parsed);
           return;
         }
+      }
 
+      if (server?.exitCode !== null) {
         reject(
-          new Error(`Test HTTP server returned an invalid port: ${value}`),
+          new Error(
+            `Test HTTP server exited before startup with code ${String(
+              server?.exitCode,
+            )}.`,
+          ),
         );
         return;
       }
@@ -57,25 +64,33 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
-  if (server) {
+  if (server && server.exitCode === null) {
     server.kill("SIGTERM");
 
     const startedAt = Date.now();
 
-    while (server.exitCode === null && server.signalCode === null) {
+    while (server.exitCode === null) {
       if (Date.now() - startedAt > 5_000) {
         server.kill("SIGKILL");
         break;
       }
 
-      await new Promise((resolve) => {
+      await new Promise<void>((resolve) => {
         setTimeout(resolve, 10);
       });
     }
   }
 
+  server?.unref();
+
   if (portFile && fs.existsSync(portFile)) {
     fs.unlinkSync(portFile);
+  }
+
+  const temporaryPortFile = `${portFile}.tmp`;
+
+  if (portFile && fs.existsSync(temporaryPortFile)) {
+    fs.unlinkSync(temporaryPortFile);
   }
 });
 
@@ -86,9 +101,11 @@ describe("NodeUrlFetchApp integration", () => {
     const response = urlFetchApp.fetch(`${baseUrl}/get`);
 
     expect(response.getResponseCode()).toBe(200);
+
     expect(JSON.parse(response.getContentText())).toEqual({
       method: "GET",
     });
+
     expect(response.getHeaders()).toMatchObject({
       "x-test": "get",
     });
@@ -106,6 +123,7 @@ describe("NodeUrlFetchApp integration", () => {
     });
 
     expect(response.getResponseCode()).toBe(200);
+
     expect(JSON.parse(response.getContentText())).toEqual({
       method: "POST",
       contentType: "application/json",
@@ -150,6 +168,7 @@ describe("NodeUrlFetchApp integration", () => {
     });
 
     expect(response.getResponseCode()).toBe(302);
+
     expect(response.getHeaders()).toMatchObject({
       location: "/redirected",
     });

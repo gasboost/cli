@@ -1,5 +1,7 @@
-const fs = require("node:fs");
-const http = require("node:http");
+import { Buffer } from "node:buffer";
+import fs from "node:fs";
+import http from "node:http";
+import process from "node:process";
 
 const portFile = process.argv[2];
 
@@ -94,7 +96,11 @@ server.listen(0, "127.0.0.1", () => {
     process.exit(1);
   }
 
-  fs.writeFileSync(portFile, String(address.port));
+  const temporaryPortFile = `${portFile}.tmp`;
+
+  fs.writeFileSync(temporaryPortFile, String(address.port), "utf8");
+
+  fs.renameSync(temporaryPortFile, portFile);
 });
 
 process.on("SIGTERM", () => {

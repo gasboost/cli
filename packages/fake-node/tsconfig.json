@@ -6,11 +6,9 @@
     "skipLibCheck": true,
     "declaration": true,
     "sourceMap": true,
-    "types": ["google-apps-script", "node"],
-    "rootDir": "src",
-    "outDir": "./dist",
-    "module": "commonjs"
-  },
-  "exclude": ["node_modules", "src/**/*.spec.ts", "src/**/*.test.ts"],
-  "include": ["src"]
+    "module": "commonjs",
+    "rootDir": ".",
+    "outDir": "dist",
+    "types": ["google-apps-script", "node"]
+  }
 }

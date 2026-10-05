@@ -2,10 +2,7 @@
 
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
-import {
-  assertEmptyProjectDirectory,
-  writeProjectFiles,
-} from "./filesystem.js";
+import { writeProjectFiles } from "./filesystem.js";
 import { createProjectFiles } from "./generator.js";
 import { projectNameFromTarget } from "./projectName.js";
 import { promptCapabilities } from "./prompts.js";
@@ -38,12 +35,6 @@ async function run(args: readonly string[]): Promise<number> {
     }
 
     const targetDirectory = resolve(positionals[0] ?? "gasboost-app");
-
-    /*
-     * Fail before asking capability questions when the target is
-     * already occupied.
-     */
-    await assertEmptyProjectDirectory(targetDirectory);
 
     const projectName = projectNameFromTarget(targetDirectory);
 

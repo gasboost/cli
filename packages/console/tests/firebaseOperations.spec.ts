@@ -136,11 +136,13 @@ describe("Firebase operations", () => {
             },
             "apps:sdkconfig WEB 1:123:web:abc --project my-project --json": {
               result: {
-                apiKey: "api-key",
-                authDomain: "my-project.firebaseapp.com",
-                databaseURL: "https://my-project.firebaseio.com",
-                projectId: "my-project",
-                appId: "1:123:web:abc",
+                sdkConfig: {
+                  apiKey: "api-key",
+                  authDomain: "my-project.firebaseapp.com",
+                  databaseURL: "https://my-project.firebaseio.com",
+                  projectId: "my-project",
+                  appId: "1:123:web:abc",
+                },
               },
             },
           }),

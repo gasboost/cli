@@ -28,7 +28,7 @@ export function baseFragment(
 
     devDependencies: {
       "@gasboost/cli": "^0.3.4",
-      "@gasboost/vite": "^1.2.3",
+      "@gasboost/vite": "^1.2.2",
       "@types/google-apps-script": "^2.0.13",
       typescript: "^7.0.2",
       vite: "^8.3.0",

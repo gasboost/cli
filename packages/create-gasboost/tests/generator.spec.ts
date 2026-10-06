@@ -62,7 +62,7 @@ function assertAlwaysGenerated(files: ReadonlyMap<string, string>): void {
 
   expect(packageJson.dependencies["@gasboost/app"]).toBe("^5.0.0");
 
-  expect(packageJson.devDependencies["@gasboost/vite"]).toBe("^1.2.3");
+  expect(packageJson.devDependencies["@gasboost/vite"]).toBe("^1.2.2");
 
   expect(packageJson.devDependencies["@gasboost/cli"]).toBe("^0.3.4");
 
@@ -243,9 +243,7 @@ function assertFrontend(
 
   const main = requiredFile(files, "src/frontend/main.tsx");
 
-  expect(main).toContain(
-    'import { AppsScriptRouter } from "@gasboost/react";',
-  );
+  expect(main).toContain('import { AppsScriptRouter } from "@gasboost/react";');
 
   expect(main).toContain("<StrictMode>");
   expect(main).toContain("<AppsScriptRouter>");

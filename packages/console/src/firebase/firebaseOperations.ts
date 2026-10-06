@@ -432,14 +432,19 @@ function parseSdkConfig(stdout: string): {
   const candidates = collectObjects(value);
   const config =
     candidates.find((candidate) => typeof candidate.apiKey === "string") ??
+    candidates.find((candidate) => typeof candidate.sdkConfig === "object") ??
     candidates.find((candidate) => typeof candidate.firebaseConfig === "object") ??
     {};
   const nested =
-    typeof config.firebaseConfig === "object" &&
-    config.firebaseConfig !== null &&
-    !Array.isArray(config.firebaseConfig)
-      ? (config.firebaseConfig as Record<string, unknown>)
-      : config;
+    typeof config.sdkConfig === "object" &&
+    config.sdkConfig !== null &&
+    !Array.isArray(config.sdkConfig)
+      ? (config.sdkConfig as Record<string, unknown>)
+      : typeof config.firebaseConfig === "object" &&
+          config.firebaseConfig !== null &&
+          !Array.isArray(config.firebaseConfig)
+        ? (config.firebaseConfig as Record<string, unknown>)
+        : config;
   const apiKey = stringValue(nested.apiKey);
   const authDomain = stringValue(nested.authDomain);
   const databaseURL = stringValue(nested.databaseURL);

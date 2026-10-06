@@ -243,9 +243,7 @@ function assertFrontend(
 
   const main = requiredFile(files, "src/frontend/main.tsx");
 
-  expect(main).toContain(
-    'import { AppsScriptRouter } from "@gasboost/react";',
-  );
+  expect(main).toContain('import { AppsScriptRouter } from "@gasboost/react";');
 
   expect(main).toContain("<StrictMode>");
   expect(main).toContain("<AppsScriptRouter>");

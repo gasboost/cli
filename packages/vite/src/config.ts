@@ -10,7 +10,6 @@ export function createGasboostConfig(options: GasboostOptions): UserConfig {
 
     build: {
       target: "es2019",
-      outDir: "dist",
       emptyOutDir: false,
 
       rollupOptions: {

@@ -38,14 +38,6 @@ describe("createGasboostConfig", () => {
     expect(config.build?.target).toBeDefined();
   });
 
-  test("outDirを設定する", () => {
-    const config = createGasboostConfig({
-      entry: "src/main.ts",
-    });
-
-    expect(config.build?.outDir).toBeDefined();
-  });
-
   test("output file nameを設定する", () => {
     const config = createGasboostConfig({
       entry: "src/main.ts",

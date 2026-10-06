@@ -63,6 +63,7 @@ export function createDevPlugin(options: GasboostOptions): Plugin {
 
       const clientModuleId = JSON.stringify(resolvedClientModuleId);
       const endpoint = JSON.stringify(LOCAL_RPC_ENDPOINT);
+      const overrideLocalRpc = options.localRpc?.override !== false;
 
       return `
 import {
@@ -75,11 +76,16 @@ export * from ${clientModuleId};
 export function appsScriptClient(options = {}) {
   return originalAppsScriptClient({
     ...options,
-    transport:
-      options.transport ??
+    transport: ${
+      overrideLocalRpc
+        ? `new FetchTransport({
+        endpoint: ${endpoint},
+      })`
+        : `options.transport ??
       new FetchTransport({
         endpoint: ${endpoint},
-      }),
+      })`
+    },
   });
 }
 `;

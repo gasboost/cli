@@ -155,6 +155,23 @@ gasboost({
 });
 ```
 
+### `localRpc.override`
+
+任意です。default は `true` です。
+
+Vite Dev Server 上で `@gasboost/client` の transport を Local RPC 用の `FetchTransport` に差し替えるかを指定します。
+
+```ts
+gasboost({
+  entry: "src/server.ts",
+  localRpc: {
+    override: false,
+  },
+});
+```
+
+`false` を指定した場合だけ、アプリケーション側で明示した transport を維持します。
+
 ---
 
 # Build Plugin
@@ -618,7 +635,7 @@ const { client } = appsScriptClient<App>();
 const result = await client.sum(1, 2);
 ```
 
-Vite Dev Server 上では、`appsScriptClient()` に transport が指定されていない場合、dev plugin が自動的に `FetchTransport` を適用します。
+Vite Dev Server 上では、dev plugin が自動的に `FetchTransport` を適用します。
 
 ```text
 appsScriptClient()
@@ -643,6 +660,27 @@ appsScriptClient({
 });
 ```
 
+明示的に `transport` を指定した場合も、default では Local RPC 用の `FetchTransport` に差し替えます。
+
+```ts
+appsScriptClient({
+  transport: customTransport,
+});
+```
+
+この場合も Vite Dev Server 上では `POST /__gasboost/{rpcName}` を利用します。
+
+実 GAS / Bridge との integration test などで明示 transport を維持したい場合は、`localRpc.override` を `false` にしてください。
+
+```ts
+const { dev } = gasboost({
+  entry: "src/server.ts",
+  localRpc: {
+    override: false,
+  },
+});
+```
+
 production build では dev plugin による差し替えは行われません。
 
 GAS 上では `appsScriptClient()` のデフォルトである `AppsScriptTransport` がそのまま利用されます。
@@ -660,16 +698,6 @@ google.script.run
 ```ts
 const { client } = appsScriptClient<App>();
 ```
-
-また、明示的に `transport` を指定した場合はその transport が優先されます。
-
-```ts
-const { client } = appsScriptClient<App>({
-  transport: customTransport,
-});
-```
-
-dev plugin が明示指定された transport を上書きすることはありません。
 
 ---
 

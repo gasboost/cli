@@ -7,6 +7,9 @@ export type GasRuntime = Readonly<Record<string, unknown>>;
 export interface GasboostOptions {
   entry: string;
   envDir?: string;
+  localRpc?: {
+    override?: boolean;
+  };
   runtime?: GasRuntime;
   template?: Record<string, string>;
 }

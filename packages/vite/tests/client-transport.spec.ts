@@ -214,7 +214,7 @@ describe("gasboost dev client transport", () => {
     expect(result.options.transport.endpoint).toBe("/__gasboost");
   });
 
-  test("明示transportを自動FetchTransportで上書きしない", async () => {
+  test("defaultでは明示transportもFetchTransportで上書きする", async () => {
     const { dev } = gasboost({
       entry: "src/server.ts",
     });
@@ -229,7 +229,46 @@ describe("gasboost dev client transport", () => {
       transport,
     });
 
+    expect(result.options.transport).not.toBe(transport);
+    expect(result.options.transport.constructor.name).toBe("FetchTransport");
+    expect(result.options.transport.endpoint).toBe("/__gasboost");
+  });
+
+  test("localRpc.override = falseでは明示transportを維持する", async () => {
+    const { dev } = gasboost({
+      entry: "src/server.ts",
+      localRpc: {
+        override: false,
+      },
+    });
+
+    const clientModule = await loadVirtualClient(dev);
+
+    const transport = {
+      call: vi.fn(),
+    };
+
+    const result = clientModule.appsScriptClient({
+      transport,
+    });
+
     expect(result.options.transport).toBe(transport);
+  });
+
+  test("localRpc.override = falseでもtransport未指定ならFetchTransportを自動適用する", async () => {
+    const { dev } = gasboost({
+      entry: "src/server.ts",
+      localRpc: {
+        override: false,
+      },
+    });
+
+    const clientModule = await loadVirtualClient(dev);
+
+    const result = clientModule.appsScriptClient();
+
+    expect(result.options.transport.constructor.name).toBe("FetchTransport");
+    expect(result.options.transport.endpoint).toBe("/__gasboost");
   });
 
   test("@gasboost/clientの他exportを維持する", async () => {

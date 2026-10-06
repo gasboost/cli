@@ -27,6 +27,17 @@ test("envDirを指定できる", () => {
   expect(options.envDir).toBe("config");
 });
 
+test("localRpc.overrideを指定できる", () => {
+  const options: GasboostOptions = {
+    entry: "src/main.ts",
+    localRpc: {
+      override: false,
+    },
+  };
+
+  expect(options.localRpc?.override).toBe(false);
+});
+
 test("build と dev を返す", () => {
   const { build, dev } = gasboost({
     entry: "src/server.ts",

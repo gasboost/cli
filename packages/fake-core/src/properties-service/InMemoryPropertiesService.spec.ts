@@ -16,9 +16,9 @@ describe("InMemoryPropertiesService", () => {
     user.setProperties({ key: "user" });
     script.setProperty("key", "script");
 
-    expect(service.getDocumentProperties().getProperty("key")).toBe("document");
-    expect(service.getUserProperties().getProperty("key")).toBe("user");
-    expect(service.getScriptProperties().getProperty("key")).toBe("script");
+    expect(document.getProperty("key")).toBe("document");
+    expect(user.getProperty("key")).toBe("user");
+    expect(script.getProperty("key")).toBe("script");
   });
 
   it("constructorから各スコープの初期値を設定できる", () => {
@@ -27,9 +27,12 @@ describe("InMemoryPropertiesService", () => {
       user: { USER_KEY: "user" },
       script: { AUTH_PEPPER: "ci-pepper" },
     });
+    const document = service.getDocumentProperties();
+    const user = service.getUserProperties();
+    const script = service.getScriptProperties();
 
-    expect(service.getDocumentProperties().getProperty("DOCUMENT_KEY")).toBe(\n      "document",\n    );
-    expect(service.getUserProperties().getProperty("USER_KEY")).toBe("user");
-    expect(service.getScriptProperties().getProperty("AUTH_PEPPER")).toBe(\n      "ci-pepper",\n    );
+    expect(document.getProperty("DOCUMENT_KEY")).toBe("document");
+    expect(user.getProperty("USER_KEY")).toBe("user");
+    expect(script.getProperty("AUTH_PEPPER")).toBe("ci-pepper");
   });
 });

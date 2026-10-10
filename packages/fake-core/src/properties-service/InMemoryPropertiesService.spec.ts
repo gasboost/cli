@@ -28,8 +28,8 @@ describe("InMemoryPropertiesService", () => {
       script: { AUTH_PEPPER: "ci-pepper" },
     });
 
-    expect(service.getDocumentProperties().getProperty("DOCUMENT_KEY")).toBe("document");
+    expect(service.getDocumentProperties().getProperty("DOCUMENT_KEY")).toBe(\n      "document",\n    );
     expect(service.getUserProperties().getProperty("USER_KEY")).toBe("user");
-    expect(service.getScriptProperties().getProperty("AUTH_PEPPER")).toBe("ci-pepper");
+    expect(service.getScriptProperties().getProperty("AUTH_PEPPER")).toBe(\n      "ci-pepper",\n    );
   });
 });
